@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | Smart Parking</title>
+  <link rel="stylesheet" href="admin.css" />
+  <script type="module" src="admin.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Admin Dashboard</h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+
+  <main>
+    <section class="areas">
+      <h2>Parking Area Status</h2>
+
+      <div class="area-card">
+        <h3>Area A</h3>
+        <p>Available: <span id="availableA">0</span></p>
+        <p>Occupied: <span id="occupiedA">0</span></p>
+      </div>
+
+      <div class="area-card">
+        <h3>Area B</h3>
+        <p>Available: <span id="availableB">0</span></p>
+        <p>Occupied: <span id="occupiedB">0</span></p>
+      </div>
+
+      <div class="area-card">
+        <h3>Area C</h3>
+        <p>Available: <span id="availableC">0</span></p>
+        <p>Occupied: <span id="occupiedC">0</span></p>
+      </div>
+    </section>
+
+    <section class="history">
+      <h2>Parking Activity Log</h2>
+      <ul id="historyList">
+        <li>Loading history...</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>Smart Parking Monitoring System © 2025</p>
+  </footer>
+</body>
+</html>

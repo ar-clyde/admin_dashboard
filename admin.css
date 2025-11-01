@@ -1,0 +1,94 @@
+/* admin.css */
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #0d1117;
+  color: #f0f6fc;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #161b22;
+  padding: 15px 30px;
+  border-bottom: 1px solid #30363d;
+}
+
+header h1 {
+  font-size: 22px;
+  color: #58a6ff;
+}
+
+header button {
+  background-color: #d73a49;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+header button:hover {
+  background-color: #ff4d5c;
+}
+
+main {
+  padding: 30px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+}
+
+.areas h2,
+.history h2 {
+  color: #58a6ff;
+  margin-bottom: 10px;
+}
+
+.area-card {
+  background: #161b22;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #30363d;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.05);
+}
+
+.area-card h3 {
+  margin-top: 0;
+  color: #79c0ff;
+}
+
+.area-card p {
+  margin: 5px 0;
+}
+
+.history {
+  background: #161b22;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+}
+
+#historyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+}
+
+#historyList li {
+  padding: 6px 0;
+  border-bottom: 1px solid #30363d;
+}
+
+footer {
+  text-align: center;
+  padding: 15px;
+  color: #8b949e;
+  font-size: 13px;
+  border-top: 1px solid #30363d;
+}
