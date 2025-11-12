@@ -43,7 +43,8 @@ main {
 }
 
 .areas h2,
-.history h2 {
+.history h2,
+.analytics h2 {
   color: #58a6ff;
   margin-bottom: 10px;
 }
@@ -64,6 +65,73 @@ main {
 
 .area-card p {
   margin: 5px 0;
+}
+
+.analytics {
+  grid-column: 1 / -1;
+  background: #161b22;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+}
+
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.analytics-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.analytics-controls select,
+.analytics-controls button {
+  background: #0d1117;
+  color: #f0f6fc;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.analytics-controls button {
+  cursor: pointer;
+}
+
+.analytics-controls button:hover {
+  border-color: #58a6ff;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.chart-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 260px;
+}
+
+.chart-card h3 {
+  margin-top: 0;
+  color: #79c0ff;
+  margin-bottom: 8px;
+}
+
+.chart-card canvas {
+  flex: 1;
+  width: 100% !important;
+  max-height: 220px;
 }
 
 .history {
