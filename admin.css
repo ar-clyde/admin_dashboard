@@ -59,7 +59,7 @@ main.dashboard-grid > section {
 .history {
   grid-column: 1 / 2;
   grid-row: 2;
-  margin-top: -160px;
+  margin-top: -20px;
 }
 
 .sensor-monitoring {
@@ -67,14 +67,9 @@ main.dashboard-grid > section {
   grid-row: 1 / 3;
 }
 
-.email-settings {
-  grid-column: 2 / 3;
-  grid-row: 3;
-}
-
 .analytics {
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 3;
 }
 
 .card-section .section-header {
@@ -353,70 +348,4 @@ footer {
 
 .sensor-value.detecting-no {
   color: #8b949e;
-}
-
-/* Email Settings */
-.email-settings {
-  background: #161b22;
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid #30363d;
-}
-
-.email-control {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.email-control label {
-  color: #8b949e;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.email-control input {
-  background: #0d1117;
-  color: #f0f6fc;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  padding: 10px 15px;
-  font-size: 14px;
-  width: 100%;
-  max-width: 400px;
-}
-
-.email-control input:focus {
-  outline: none;
-  border-color: #58a6ff;
-}
-
-.email-control button {
-  background: #238636;
-  border: none;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  width: fit-content;
-}
-
-.email-control button:hover {
-  background: #2ea043;
-}
-
-.email-status {
-  margin: 0;
-  font-size: 13px;
-  min-height: 20px;
-}
-
-.email-status.success {
-  color: #3fb950;
-}
-
-.email-status.error {
-  color: #f85149;
 }
