@@ -4,9 +4,7 @@ import {
   getDatabase,
   ref,
   onValue,
-  push,
-  set,
-  get
+  push
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import {
   getAuth,
@@ -51,7 +49,6 @@ mqttClient.on("message", (topic, message) => {
       const area = match[1].toUpperCase();
       const sensorNum = match[2];
       updateSensorDisplay(area, sensorNum, payload);
-      checkSensorStatus(area, sensorNum, payload); // Monitor for alerts
     }
   } catch (error) {
     console.error("Error parsing sensor message:", error);
@@ -103,187 +100,6 @@ function setCapacity(area, capacity) {
   });
 }
 
-// Email Alert Configuration
-const emailSettingsRef = ref(db, "settings/alertEmail");
-let alertEmail = null;
-let lastAlertTimes = {}; // Track last alert time to prevent spam
-const ALERT_COOLDOWN = 5 * 60 * 1000; // 5 minutes between alerts for same issue
-
-// Load saved email
-onValue(emailSettingsRef, (snapshot) => {
-  alertEmail = snapshot.val();
-  const emailInput = document.getElementById("alertEmail");
-  if (emailInput && alertEmail) {
-    emailInput.value = alertEmail;
-  }
-});
-
-// Save email function
-function saveAlertEmail(email) {
-  if (!email || !email.includes("@")) {
-    return { success: false, error: "Invalid email address" };
-  }
-  set(emailSettingsRef, email);
-  alertEmail = email;
-  return { success: true };
-}
-
-// Send email alert function
-async function sendEmailAlert(subject, message) {
-  if (!alertEmail) {
-    console.warn("No alert email configured");
-    return { success: false, error: "No email configured" };
-  }
-
-  // Use your deployed API endpoint or local server
-  // Update this URL to match your deployment
-  const API_URL = window.location.origin + "/api/send-email";
-  // For local development, you might need: "http://localhost:3000/api/send-email"
-  
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        toEmail: alertEmail,
-        subject: subject,
-        message: message
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error("Error sending email alert:", error);
-    // Fallback: try direct Brevo API call (if CORS allows)
-    return { success: false, error: error.message };
-  }
-}
-
-// Check if we should send alert (prevent spam)
-function shouldSendAlert(alertKey) {
-  const now = Date.now();
-  const lastTime = lastAlertTimes[alertKey];
-  
-  if (!lastTime || (now - lastTime) > ALERT_COOLDOWN) {
-    lastAlertTimes[alertKey] = now;
-    return true;
-  }
-  return false;
-}
-
-// Monitor sensor status
-const sensorStatus = {};
-const sensorLastSeen = {};
-
-function checkSensorStatus(area, sensorNum, data) {
-  const sensorKey = `${area}-${sensorNum}`;
-  const now = Date.now();
-  
-  // Update last seen time
-  sensorLastSeen[sensorKey] = now;
-  
-  // Check if sensor is offline (status error or no data for 2 minutes)
-  const isOffline = data.status !== "Working" || !data.status;
-  
-  if (isOffline && sensorStatus[sensorKey] !== "offline") {
-    sensorStatus[sensorKey] = "offline";
-    const alertKey = `sensor-${sensorKey}-offline`;
-    
-    if (shouldSendAlert(alertKey) && alertEmail) {
-      sendEmailAlert(
-        `⚠️ Sensor Offline Alert - Area ${area} Sensor ${sensorNum}`,
-        `<h2>Sensor Disconnection Alert</h2>
-        <p><strong>Sensor:</strong> Area ${area} - Sensor ${sensorNum}</p>
-        <p><strong>Status:</strong> ${data.status || "Unknown"}</p>
-        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-        <p>Please check the sensor connection and ESP device.</p>`
-      );
-    }
-  } else if (!isOffline && sensorStatus[sensorKey] === "offline") {
-    sensorStatus[sensorKey] = "online";
-    console.log(`Sensor ${sensorKey} is back online`);
-  }
-}
-
-// Check for sensors that haven't reported in a while
-setInterval(() => {
-  const now = Date.now();
-  const TIMEOUT = 2 * 60 * 1000; // 2 minutes
-  
-  Object.keys(sensorLastSeen).forEach(sensorKey => {
-    if (now - sensorLastSeen[sensorKey] > TIMEOUT) {
-      if (sensorStatus[sensorKey] !== "offline") {
-        sensorStatus[sensorKey] = "offline";
-        const [area, sensorNum] = sensorKey.split("-");
-        const alertKey = `sensor-${sensorKey}-timeout`;
-        
-        if (shouldSendAlert(alertKey) && alertEmail) {
-          sendEmailAlert(
-            `⚠️ Sensor Timeout Alert - Area ${area} Sensor ${sensorNum}`,
-            `<h2>Sensor Timeout Alert</h2>
-            <p><strong>Sensor:</strong> Area ${area} - Sensor ${sensorNum}</p>
-            <p><strong>Issue:</strong> No data received for more than 2 minutes</p>
-            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-            <p>This may indicate the ESP device is offline or the sensor is disconnected.</p>`
-          );
-        }
-      }
-    }
-  });
-}, 30000); // Check every 30 seconds
-
-// Monitor MQTT connection
-let mqttConnected = false;
-let mqttLastConnect = null;
-
-mqttClient.on("connect", () => {
-  console.log("Admin: Connected to MQTT broker");
-  mqttConnected = true;
-  mqttLastConnect = Date.now();
-  sensorTopics.forEach((topic) => mqttClient.subscribe(topic));
-});
-
-mqttClient.on("error", (error) => {
-  console.error("MQTT Error:", error);
-  if (mqttConnected) {
-    mqttConnected = false;
-    const alertKey = "mqtt-disconnect";
-    
-    if (shouldSendAlert(alertKey) && alertEmail) {
-      sendEmailAlert(
-        "⚠️ MQTT Connection Lost",
-        `<h2>MQTT Broker Connection Lost</h2>
-        <p><strong>Error:</strong> ${error.message || "Connection failed"}</p>
-        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-        <p>Please check the MQTT broker status and network connection.</p>`
-      );
-    }
-  }
-});
-
-mqttClient.on("close", () => {
-  if (mqttConnected) {
-    mqttConnected = false;
-    const alertKey = "mqtt-close";
-    
-    if (shouldSendAlert(alertKey) && alertEmail) {
-      sendEmailAlert(
-        "⚠️ MQTT Connection Closed",
-        `<h2>MQTT Broker Connection Closed</h2>
-        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-        <p>The connection to the MQTT broker has been closed. Please check the broker status.</p>`
-      );
-    }
-  }
-});
-
 // Set up capacity control buttons
 document.addEventListener("DOMContentLoaded", () => {
   // Area A
@@ -303,33 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setCapacity("B", capacity);
     } else {
       alert("Capacity must be between 1 and 100");
-    }
-  });
-
-  // Email settings
-  const saveEmailBtn = document.getElementById("saveEmailBtn");
-  const emailInput = document.getElementById("alertEmail");
-  const emailStatus = document.getElementById("emailStatus");
-
-  saveEmailBtn?.addEventListener("click", () => {
-    const email = emailInput?.value.trim();
-    if (!email) {
-      emailStatus.textContent = "Please enter an email address";
-      emailStatus.className = "email-status error";
-      return;
-    }
-
-    const result = saveAlertEmail(email);
-    if (result.success) {
-      emailStatus.textContent = "Email saved successfully!";
-      emailStatus.className = "email-status success";
-      setTimeout(() => {
-        emailStatus.textContent = "";
-        emailStatus.className = "email-status";
-      }, 3000);
-    } else {
-      emailStatus.textContent = result.error || "Failed to save email";
-      emailStatus.className = "email-status error";
     }
   });
 });
@@ -356,29 +145,6 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 const areaARef = ref(db, "parking/A");
 const areaBRef = ref(db, "parking/B");
 const historyRef = ref(db, "history");
-
-// Test Firebase connection
-console.log("Firebase initialized, database:", db);
-console.log("History ref path:", historyRef.toString());
-
-// Initialize history and analytics immediately when DOM is ready
-document.addEventListener("DOMContentLoaded", () => {
-  // Ensure history list element exists
-  const list = document.getElementById("historyList");
-  if (list) {
-    console.log("DOM ready - History list element found");
-    // History listener is set up below and will fire immediately when Firebase has data
-  } else {
-    console.error("History list element not found in DOM!");
-  }
-  
-  // Also ensure charts can be initialized
-  const chartAEl = document.getElementById("chartA");
-  const chartBEl = document.getElementById("chartB");
-  if (chartAEl && chartBEl) {
-    console.log("Chart elements found, ready for data");
-  }
-});
 
 // Track last values to prevent duplicate entries
 let lastAreaA = { available: null, occupied: null };
@@ -443,25 +209,14 @@ function createLineChart(ctx, label) {
 }
 
 function ensureCharts() {
-  const chartAEl = document.getElementById("chartA");
-  const chartBEl = document.getElementById("chartB");
-  
-  if (!chartAEl || !chartBEl) {
-    console.warn("Chart canvas elements not found");
-    return false;
-  }
-  
   if (!chartA) {
-    const ctxA = chartAEl.getContext("2d");
+    const ctxA = document.getElementById("chartA").getContext("2d");
     chartA = createLineChart(ctxA, "Area A");
-    console.log("Chart A initialized");
   }
   if (!chartB) {
-    const ctxB = chartBEl.getContext("2d");
+    const ctxB = document.getElementById("chartB").getContext("2d");
     chartB = createLineChart(ctxB, "Area B");
-    console.log("Chart B initialized");
   }
-  return true;
 }
 
 function rangeToMs(range) {
@@ -501,18 +256,11 @@ function updateCharts() {
   byArea.B.sort((a, b) => a.ts - b.ts);
 
   function applyData(chart, entries) {
-    if (!chart) {
-      console.warn("Chart not initialized");
-      return;
-    }
     chart.data.labels = entries.map((e) => formatTs(e.ts));
     chart.data.datasets[0].data = entries.map((e) => e.occupied ?? 0);
-    chart.update("none"); // Update without animation for faster loading
-    console.log(`Chart updated with ${entries.length} data points`);
+    chart.update();
   }
 
-  // Update charts even if empty (shows empty state)
-  console.log(`Updating charts - Area A: ${byArea.A.length} entries, Area B: ${byArea.B.length} entries`);
   applyData(chartA, byArea.A);
   applyData(chartB, byArea.B);
 }
@@ -649,50 +397,25 @@ onValue(areaBRef, (snapshot) => {
   addToHistory("B", data);
 });
 
-// Display history - loads immediately from Firebase, independent of MQTT/ESP
-function loadHistoryFromFirebase(snapshot) {
-  console.log("History listener fired", snapshot.exists());
-  
+// Display history
+onValue(historyRef, (snapshot) => {
   const list = document.getElementById("historyList");
-  if (!list) {
-    console.warn("History list element not found, will retry when DOM is ready");
-    // Retry after a short delay
-    setTimeout(() => loadHistoryFromFirebase(snapshot), 100);
-    return;
-  }
-  
-  const history = snapshot.val();
-  console.log("History data from Firebase:", history ? Object.keys(history).length + " entries" : "null");
-
-  // Clear loading message
   list.innerHTML = "";
+  const history = snapshot.val();
 
-  if (!history || Object.keys(history).length === 0) {
-    console.log("No history data in Firebase");
+  if (!history) {
     list.innerHTML = "<li>No recent data yet</li>";
-    // Initialize charts with empty data
-    updateCharts();
     return;
   }
 
   const entries = Object.values(history);
-  console.log("Processing", entries.length, "history entries");
-  
   // Merge into in-memory store
   allHistory.length = 0;
   for (const e of entries) {
     const ts = typeof e.ts === "number" ? e.ts : (e.iso ? Date.parse(e.iso) : null);
-    if (!ts) {
-      console.warn("Entry missing timestamp:", e);
-      continue;
-    }
+    if (!ts) continue;
     allHistory.push({ ...e, ts });
   }
-
-  console.log("Loaded", allHistory.length, "entries into allHistory");
-
-  // Sort all history by timestamp
-  allHistory.sort((a, b) => (a.ts || 0) - (b.ts || 0));
 
   // Update last history entries
   const areaAEntries = entries.filter(e => e.area === "A").sort((a, b) => {
@@ -713,59 +436,17 @@ function loadHistoryFromFirebase(snapshot) {
     lastHistoryEntryB = areaBEntries[0];
   }
 
-  // Show last 10 (most recent)
-  const sortedEntries = entries.sort((a, b) => {
-    const tsA = typeof a.ts === "number" ? a.ts : (a.iso ? Date.parse(a.iso) : 0);
-    const tsB = typeof b.ts === "number" ? b.ts : (b.iso ? Date.parse(b.iso) : 0);
-    return tsB - tsA; // Most recent first
+  // Show last 10
+  const lastTen = entries.slice(-10).reverse();
+
+  lastTen.forEach((entry) => {
+    const li = document.createElement("li");
+  const timestampLabel = formatHistoryTimestamp(entry);
+  li.textContent = `[${timestampLabel}] Area ${entry.area} — Occupied: ${entry.occupied}, Available: ${entry.available}`;
+    list.appendChild(li);
   });
-  
-  const lastTen = sortedEntries.slice(0, 10); // Get first 10 (most recent)
 
-  if (lastTen.length === 0) {
-    list.innerHTML = "<li>No recent data yet</li>";
-  } else {
-    console.log("Displaying", lastTen.length, "history entries");
-    lastTen.forEach((entry) => {
-      const li = document.createElement("li");
-      const timestampLabel = formatHistoryTimestamp(entry);
-      li.textContent = `[${timestampLabel}] Area ${entry.area} — Occupied: ${entry.occupied}, Available: ${entry.available}`;
-      list.appendChild(li);
-    });
-  }
-
-  // Update charts with existing data
-  console.log("Updating charts with", allHistory.length, "entries");
   updateCharts();
-}
-
-// Set up history listener - fires immediately when Firebase has data
-console.log("Setting up history listener...");
-onValue(historyRef, (snapshot) => {
-  console.log("History listener callback triggered");
-  loadHistoryFromFirebase(snapshot);
-}, (error) => {
-  // Handle errors
-  console.error("Error loading history from Firebase:", error);
-  const list = document.getElementById("historyList");
-  if (list) {
-    list.innerHTML = "<li>Error loading history data: " + error.message + "</li>";
-  }
-});
-
-// Also try a one-time read to test connection
-import { get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-get(historyRef).then((snapshot) => {
-  console.log("One-time read test - History exists:", snapshot.exists());
-  if (snapshot.exists()) {
-    console.log("History data keys:", Object.keys(snapshot.val()));
-    // Manually trigger load if listener didn't fire
-    loadHistoryFromFirebase(snapshot);
-  } else {
-    console.log("No history data in Firebase yet");
-  }
-}).catch((error) => {
-  console.error("Error reading history:", error);
 });
 
 // Controls
