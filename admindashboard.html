@@ -6,6 +6,7 @@
   <title>Admin Dashboard | Smart Parking</title>
   <link rel="stylesheet" href="admin.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script type="module" src="admin.js"></script>
 </head>
 <body>
@@ -14,37 +15,164 @@
     <button id="logoutBtn">Logout</button>
   </header>
 
-  <main>
-    <section class="areas">
-      <h2>Parking Area Status</h2>
-
+  <main class="dashboard-grid">
+    <section class="areas card-section">
+      <div class="section-header">
+        <h2>Parking Area Status</h2>
+      </div>
       <div class="area-card">
         <h3>Area A</h3>
-        <p>Available: <span id="availableA">0</span></p>
-        <p>Occupied: <span id="occupiedA">0</span></p>
+        <div class="available-display">
+          <span id="availableA" class="available-number">0</span>
+          <p class="available-label">Available</p>
+        </div>
+        <div class="capacity-control">
+          <label for="capacityA">Max Capacity:</label>
+          <input type="number" id="capacityA" min="1" max="100" value="5" />
+          <button id="setCapacityA">Set Capacity</button>
+        </div>
       </div>
 
       <div class="area-card">
         <h3>Area B</h3>
-        <p>Available: <span id="availableB">0</span></p>
-        <p>Occupied: <span id="occupiedB">0</span></p>
-      </div>
-
-      <div class="area-card">
-        <h3>Area C</h3>
-        <p>Available: <span id="availableC">0</span></p>
-        <p>Occupied: <span id="occupiedC">0</span></p>
+        <div class="available-display">
+          <span id="availableB" class="available-number">0</span>
+          <p class="available-label">Available</p>
+        </div>
+        <div class="capacity-control">
+          <label for="capacityB">Max Capacity:</label>
+          <input type="number" id="capacityB" min="1" max="100" value="5" />
+          <button id="setCapacityB">Set Capacity</button>
+        </div>
       </div>
     </section>
 
-    <section class="history">
-      <h2>Parking Activity Log</h2>
+    <section class="sensor-monitoring card-section">
+      <div class="section-header">
+        <h2>Sensor Status</h2>
+      </div>
+      
+      <div class="sensor-grid">
+        <div class="sensor-card">
+          <h3>Area A - Entrance Sensor 1</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorA1Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorA1Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorA1Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <h3>Area A - Exit Sensor</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorA2Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorA2Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorA2Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <h3>Area B - Entrance Sensor 1</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorB1Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorB1Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorB1Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <h3>Area B - Entrance Sensor 2</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorB2Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorB2Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorB2Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <h3>Area B - Exit Sensor 1</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorB3Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorB3Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorB3Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+
+        <div class="sensor-card">
+          <h3>Area B - Exit Sensor 2</h3>
+          <div class="sensor-status">
+            <span class="sensor-label">Status:</span>
+            <span id="sensorB4Status" class="sensor-value">Unknown</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Distance:</span>
+            <span id="sensorB4Distance" class="sensor-value">-- cm</span>
+          </div>
+          <div class="sensor-status">
+            <span class="sensor-label">Detecting:</span>
+            <span id="sensorB4Detecting" class="sensor-value">No</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="email-settings card-section">
+      <div class="section-header">
+        <h2>Email Alert Settings</h2>
+      </div>
+      <div class="email-control">
+        <label for="alertEmail">Alert Email Address:</label>
+        <input type="email" id="alertEmail" placeholder="your-email@example.com" />
+        <button id="saveEmailBtn">Save Email</button>
+        <p class="email-status" id="emailStatus"></p>
+      </div>
+    </section>
+
+    <section class="history card-section">
+      <div class="section-header">
+        <h2>Parking Activity Log</h2>
+      </div>
       <ul id="historyList">
         <li>Loading history...</li>
       </ul>
     </section>
 
-    <section class="analytics">
+    <section class="analytics card-section">
       <div class="analytics-header">
         <h2>Analytics</h2>
         <div class="analytics-controls">
@@ -69,10 +197,6 @@
         <div class="chart-card">
           <h3>Area B</h3>
           <canvas id="chartB" height="140"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Area C</h3>
-          <canvas id="chartC" height="140"></canvas>
         </div>
       </div>
     </section>
